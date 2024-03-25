@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horse Race Predictor - by pkj</title>
+</head>
+<body>
+    <h2>Horse Race Predictor - by pkj</h2>
+    <label for="num_horses">Number of Horses:</label>
+    <input type="number" id="num_horses" name="num_horses" placeholder="Number of Horses" required oninput="createHorseInputFields(this.value)"><br>
+    <label for="race_distance">Race Distance (m):</label>
+    <input type="number" id="race_distance" name="race_distance" placeholder="Race Distance" required><br>
+    <form id="horseDataForm">
+        <div id="horseInputs">
+            <!-- Horse inputs will be dynamically added here -->
+        </div>
+        <button type="button" onclick="submitHorseData()">Predict</button>
+    </form>
+    <div id="predictionResult"></div>
+
+    <script>
+        function createHorseInputFields(numberOfHorses) {
+            const horseInputs = document.getElementById('horseInputs');
+            horseInputs.innerHTML = '';
+            for (let i = 1; i <= numberOfHorses; i++) {
+                horseInputs.innerHTML += `<h4>Horse ${i}</h4>
+                    <input type="text" placeholder="Horse Name" name="horse_name" value="Horse ${i}"><br>
+                    <input type="number" placeholder="Past Victories" name="past_victory" required><br>
+                    <input type="number" placeholder="Avg Past Run Time" name="avg_past_run_time" required><br>
+                    <input type="number" placeholder="Media Rating" name="media_rating" required><br>
+                    <input type="checkbox" name="jockey" id="jockey${i}"> Jockey factor<br>
+                    <input type="checkbox" name="telegraph" id="telegraph${i}"> Telegraph hotpick<br>`;
+            }
+        }
+
+        function submitHorseData() {
+            const raceDistance = document.getElementById('race_distance').value || 1000;
+            const form = document.getElementById('horseDataForm');
+            let formData = [];
+            let totalScore = 0;
+
+            for (let i = 0; i < form.elements['horse_name'].length; i++) {
+                let name = form.elements['horse_name'][i].value;
+                let past_victory = parseFloat(form.elements['past_victory'][i].value) || 0;
+                let avg_past_run_time = parseFloat(form.elements['avg_past_run_time'][i].value) || 0;
+                let media_rating = parseFloat(form.elements['media_rating'][i].value) || 0;
+                let jockey = document.getElementById(`jockey${i+1}`).checked ? 0.05 : 0;
+                let telegraph = document.getElementById(`telegraph${i+1}`).checked ? 0.40 : 0;
+                
+                let avgSpeedWeight = 0.05 + (raceDistance - 1000) * (5/200000);
+                let remainingWeight = (1 - avgSpeedWeight - jockey - telegraph) / 2;
+
+                let score = (remainingWeight * past_victory) + (avgSpeedWeight / avg_past_run_time) + (remainingWeight * media_rating) + jockey + telegraph;
+                
+                formData.push({ name, score });
+                totalScore += score;
+            }
+
+            formData.sort((a, b) => b.score - a.score);
+
+            const resultElement = document.getElementById('predictionResult');
+            resultElement.innerHTML = `<h3>Predictions:</h3>`;
+            formData.forEach((horse, index) => {
+                let absoluteProbability = horse.score;
+                let relativeProbability = horse.score / totalScore;
+                resultElement.innerHTML += `<p>${horse.name || `Horse ${index+1}`}: Absolute value - ${(absoluteProbability * 100).toFixed(2)}, Normalized Probability- ${(relativeProbability * 100).toFixed(2)}%</p>`;
+            });
+        }
+    </script>
+</body>
+</html>
